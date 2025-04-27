@@ -80,7 +80,42 @@ const authResolvers = {
 
         // Devolver datos de autenticación
         const authData = await response.json();
-        return authData;
+        
+        // Asegurarse de que la respuesta tenga la estructura esperada
+        if (!authData.token || !authData.refreshToken) {
+          console.log("Estructura de respuesta recibida:", JSON.stringify(authData, null, 2));
+          
+          // Si el usuario se registró pero falta información en la respuesta, 
+          // intentamos iniciar sesión manualmente
+          const loginResponse = await fetch(`${services.auth}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: input.email,
+              password: input.password
+            }),
+          });
+          
+          if (!loginResponse.ok) {
+            throw new UserInputError('Usuario registrado pero no se pudo iniciar sesión automáticamente');
+          }
+          
+          return await loginResponse.json();
+        }
+        
+        return {
+          token: authData.token,
+          refreshToken: authData.refreshToken,
+          user: {
+            id: authData.id || authData.user?.id,
+            email: authData.email || authData.user?.email,
+            role: {
+              name: authData.role || authData.user?.role
+            }
+          }
+        };
       } catch (error) {
         console.error('Error en resolver register:', error);
         throw new UserInputError(error.message || 'Error durante el registro');
@@ -106,7 +141,19 @@ const authResolvers = {
         }
 
         const authData = await response.json();
-        return authData;
+        
+        // Transformar la respuesta para que coincida con el esquema GraphQL
+        return {
+          token: authData.token,
+          refreshToken: authData.refreshToken,
+          user: {
+            id: authData.id || authData.user?.id,
+            email: authData.email || authData.user?.email,
+            role: {
+              name: authData.role || authData.user?.role
+            }
+          }
+        };
       } catch (error) {
         console.error('Error en resolver login:', error);
         throw new AuthenticationError(error.message || 'Error durante el inicio de sesión');
@@ -131,7 +178,19 @@ const authResolvers = {
         }
 
         const authData = await response.json();
-        return authData;
+        
+        // Transformar la respuesta para coincidir con el esquema GraphQL
+        return {
+          token: authData.token || authData.accessToken,
+          refreshToken: authData.refreshToken,
+          user: {
+            id: authData.id || authData.user?.id,
+            email: authData.email || authData.user?.email,
+            role: {
+              name: authData.role || authData.user?.role
+            }
+          }
+        };
       } catch (error) {
         console.error('Error en resolver refreshToken:', error);
         throw new AuthenticationError('Error al refrescar el token');

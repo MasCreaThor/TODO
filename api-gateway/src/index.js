@@ -55,8 +55,15 @@ async function startApolloServer() {
         },
         // Cliente fetch para comunicación con microservicios
         fetch: async (url, options = {}) => {
-          // Añadir token de autenticación si existe
-          if (user && req.headers.authorization) {
+          // Determinar si es una ruta pública de autenticación
+          const isPublicAuthEndpoint = 
+            url.includes('/api/auth/register') || 
+            url.includes('/api/auth/login') || 
+            url.includes('/api/auth/refresh-token') ||
+            url.includes('/api/auth/validate-token');
+          
+          // Añadir token de autenticación si existe y no es una ruta pública
+          if (user && req.headers.authorization && !isPublicAuthEndpoint) {
             options.headers = {
               ...options.headers,
               'Authorization': req.headers.authorization
