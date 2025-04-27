@@ -1,3 +1,4 @@
+// src/index.js
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { makeExecutableSchema } from '@graphql-tools/schema';
@@ -12,9 +13,8 @@ import fetch from 'node-fetch';
 // Carga variables de entorno
 dotenv.config();
 
-// Puerto
+// Puerto y URLs de servicios
 const PORT = process.env.PORT || 4000;
-// URLs de servicios
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8080';
 const RESERVAS_SERVICE_URL = process.env.RESERVAS_SERVICE_URL || 'http://localhost:3000';
 
@@ -23,7 +23,10 @@ async function startApolloServer() {
   const app = express();
   
   // Middleware CORS
-  app.use(cors());
+  app.use(cors({
+    origin: process.env.FRONTEND_URL || '*', // Permitir origen del frontend o cualquiera en desarrollo
+    credentials: true // Habilitar cookies/credentials para autenticación
+  }));
   
   // Middleware para parsear JSON
   app.use(express.json());
@@ -53,7 +56,7 @@ async function startApolloServer() {
         // Cliente fetch para comunicación con microservicios
         fetch: async (url, options = {}) => {
           // Añadir token de autenticación si existe
-          if (user) {
+          if (user && req.headers.authorization) {
             options.headers = {
               ...options.headers,
               'Authorization': req.headers.authorization
@@ -67,6 +70,17 @@ async function startApolloServer() {
       // Personalizar mensajes de error
       console.error('GraphQL Error:', error);
       
+      // No exponer detalles internos en producción
+      if (process.env.NODE_ENV === 'production') {
+        if (error.extensions?.code === 'INTERNAL_SERVER_ERROR') {
+          return {
+            message: 'Error interno del servidor',
+            extensions: { code: error.extensions.code }
+          };
+        }
+      }
+      
+      // Devolver error completo en desarrollo
       return {
         message: error.message,
         locations: error.locations,
@@ -75,7 +89,7 @@ async function startApolloServer() {
       };
     },
     // Habilitar playground en entorno de desarrollo
-    introspection: true,
+    introspection: process.env.NODE_ENV !== 'production',
     playground: process.env.NODE_ENV !== 'production',
   });
 
@@ -83,19 +97,57 @@ async function startApolloServer() {
   await server.start();
   
   // Aplicar middleware de Apollo a Express
-  server.applyMiddleware({ app });
+  server.applyMiddleware({ 
+    app,
+    cors: false, // Ya configuramos CORS a nivel de Express
+    path: '/graphql'
+  });
 
   // Ruta básica para verificar que el servidor está funcionando
   app.get('/', (req, res) => {
-    res.json({ message: 'API Gateway for Hotel Booking App' });
+    res.json({ 
+      message: 'API Gateway for Hotel Booking App',
+      graphqlEndpoint: `http://localhost:${PORT}${server.graphqlPath}`,
+      status: 'running'
+    });
+  });
+
+  // Ruta de estado para verificar la conexión con microservicios
+  app.get('/health', async (req, res) => {
+    try {
+      // Verificar conexión con Auth Service
+      const authResponse = await fetch(`${AUTH_SERVICE_URL}/actuator/health`, { timeout: 3000 })
+        .then(r => r.ok ? { status: 'UP' } : { status: 'DOWN' })
+        .catch(() => ({ status: 'DOWN' }));
+      
+      // Verificar conexión con Reservas Service
+      const reservasResponse = await fetch(`${RESERVAS_SERVICE_URL}/health`, { timeout: 3000 })
+        .then(r => r.ok ? { status: 'UP' } : { status: 'DOWN' })
+        .catch(() => ({ status: 'DOWN' }));
+      
+      res.json({
+        status: 'UP',
+        services: {
+          auth: authResponse.status,
+          reservas: reservasResponse.status
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        status: 'DOWN',
+        error: error.message
+      });
+    }
   });
 
   // Iniciar servidor Express
   app.listen(PORT, () => {
     console.log(`
-    🚀 API Gateway running at http://localhost:${PORT}${server.graphqlPath}
-    📡 Connected to Auth Service at ${AUTH_SERVICE_URL}
-    📡 Connected to Reservas Service at ${RESERVAS_SERVICE_URL}
+🚀 API Gateway running at http://localhost:${PORT}
+📡 GraphQL endpoint: http://localhost:${PORT}${server.graphqlPath}
+🔐 Auth Service: ${AUTH_SERVICE_URL}
+🏨 Reservas Service: ${RESERVAS_SERVICE_URL}
+🌐 Environment: ${process.env.NODE_ENV || 'development'}
     `);
   });
 }
@@ -103,4 +155,5 @@ async function startApolloServer() {
 // Iniciar servidor
 startApolloServer().catch(err => {
   console.error('Error starting server:', err);
+  process.exit(1);
 });
