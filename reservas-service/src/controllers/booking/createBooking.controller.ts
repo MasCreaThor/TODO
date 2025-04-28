@@ -1,26 +1,29 @@
 // src/controllers/booking/createBooking.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { bookingService } from '../../services';
 
 /**
  * Controlador para crear una nueva reserva
  * @param req Request - Debe incluir userId (añadido por middleware de autenticación)
  * @param res Response
+ * @param next NextFunction
  */
-export const createBooking = async (req: Request, res: Response) => {
+const createBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Verificar que el usuario está autenticado
     if (!req.userId) {
-      return res.status(401).json({ message: 'Usuario no autenticado' });
+      res.status(401).json({ message: 'Usuario no autenticado' });
+      return;
     }
     
     const { habitacionId, fechaEntrada, fechaSalida, numeroHuespedes, comentarios } = req.body;
     
     // Validar datos requeridos
     if (!habitacionId || !fechaEntrada || !fechaSalida || !numeroHuespedes) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'Datos incompletos. Se requiere: habitacionId, fechaEntrada, fechaSalida, numeroHuespedes' 
       });
+      return;
     }
     
     // Validar que fechaEntrada sea anterior a fechaSalida
@@ -28,9 +31,10 @@ export const createBooking = async (req: Request, res: Response) => {
     const endDate = new Date(fechaSalida);
     
     if (startDate >= endDate) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'La fecha de entrada debe ser anterior a la fecha de salida' 
       });
+      return;
     }
     
     // Validar que no se intente hacer una reserva para fechas pasadas
@@ -38,9 +42,10 @@ export const createBooking = async (req: Request, res: Response) => {
     today.setHours(0, 0, 0, 0); // Inicio del día actual
     
     if (startDate < today) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         message: 'No se puede crear una reserva para fechas pasadas' 
       });
+      return;
     }
     
     // Utilizar el servicio para crear la reserva

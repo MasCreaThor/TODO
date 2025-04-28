@@ -1,4 +1,5 @@
-// @ts-nocheck - Desactivamos TypeScript para este archivo debido a problemas con los tipos de Express
+
+// src/routes/booking.routes.ts
 import express from 'express';
 import { authMiddleware, hasRole } from '../middlewares/auth.middleware';
 import { 
@@ -9,8 +10,6 @@ import {
 } from '../controllers/booking';
 
 const router = express.Router();
-
-// Rutas no protegidas - No hay rutas públicas para reservas
 
 // Rutas protegidas - Requieren autenticación
 router.use(authMiddleware);

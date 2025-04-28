@@ -1,13 +1,14 @@
 // src/controllers/room/getRoomsByHotelId.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { roomService } from '../../services';
 
 /**
  * Controlador para obtener habitaciones de un hotel específico
  * @param req Request - Debe incluir param: hotelId y puede incluir query: fechaEntrada, fechaSalida, capacidad
  * @param res Response
+ * @param next NextFunction
  */
-export const getRoomsByHotelId = async (req: Request, res: Response) => {
+const getRoomsByHotelId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { hotelId } = req.params;
     
@@ -23,14 +24,18 @@ export const getRoomsByHotelId = async (req: Request, res: Response) => {
     
     // Verificar si el hotel existe
     if (rooms === null) {
-      return res.status(404).json({ message: `Hotel con ID ${hotelId} no encontrado` });
+      res.status(404).json({ message: `Hotel con ID ${hotelId} no encontrado` });
+      return;
     }
     
     // Enviar respuesta
     res.json(rooms);
   } catch (error) {
     console.error('Error al obtener habitaciones por hotel ID:', error);
-    res.status(500).json({ message: 'Error al obtener las habitaciones', error });
+    res.status(500).json({ 
+      message: 'Error al obtener las habitaciones', 
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 

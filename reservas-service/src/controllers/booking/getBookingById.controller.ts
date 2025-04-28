@@ -1,17 +1,19 @@
 // src/controllers/booking/getBookingById.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { bookingService } from '../../services';
 
 /**
  * Controlador para obtener una reserva específica por su ID
  * @param req Request - Debe incluir param: id y userId (añadido por middleware de autenticación)
  * @param res Response
+ * @param next NextFunction
  */
-export const getBookingById = async (req: Request, res: Response) => {
+const getBookingById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Verificar que el usuario está autenticado
     if (!req.userId) {
-      return res.status(401).json({ message: 'Usuario no autenticado' });
+      res.status(401).json({ message: 'Usuario no autenticado' });
+      return;
     }
     
     const { id } = req.params;
@@ -21,12 +23,14 @@ export const getBookingById = async (req: Request, res: Response) => {
     
     // Verificar si la reserva existe
     if (!booking) {
-      return res.status(404).json({ message: `Reserva con ID ${id} no encontrada` });
+      res.status(404).json({ message: `Reserva con ID ${id} no encontrada` });
+      return;
     }
     
     // Verificar que la reserva pertenece al usuario o el usuario es administrador/gestor de hotel
     if (booking.userId !== req.userId && req.userRole !== 'ADMIN' && req.userRole !== 'HOTEL_MANAGER') {
-      return res.status(403).json({ message: 'No tiene permiso para ver esta reserva' });
+      res.status(403).json({ message: 'No tiene permiso para ver esta reserva' });
+      return;
     }
     
     // Enviar respuesta

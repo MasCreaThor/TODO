@@ -1,17 +1,19 @@
 // src/controllers/booking/cancelBooking.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { bookingService } from '../../services';
 
 /**
  * Controlador para cancelar una reserva
  * @param req Request - Debe incluir param: id y userId (añadido por middleware de autenticación)
  * @param res Response
+ * @param next NextFunction
  */
-export const cancelBooking = async (req: Request, res: Response) => {
+const cancelBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Verificar que el usuario está autenticado
     if (!req.userId) {
-      return res.status(401).json({ message: 'Usuario no autenticado' });
+      res.status(401).json({ message: 'Usuario no autenticado' });
+      return;
     }
     
     const { id } = req.params;
@@ -25,11 +27,17 @@ export const cancelBooking = async (req: Request, res: Response) => {
     } catch (error) {
       // Capturar errores específicos del servicio
       if (error instanceof Error) {
-        if (error.message.includes('permiso') || error.message.includes('ya está cancelada')) {
-          return res.status(400).json({ message: error.message });
+        if (error.message.includes('permiso')) {
+          res.status(403).json({ message: error.message });
+          return;
+        }
+        if (error.message.includes('ya está cancelada')) {
+          res.status(400).json({ message: error.message });
+          return;
         }
         if (error.message.includes('no encontrada')) {
-          return res.status(404).json({ message: error.message });
+          res.status(404).json({ message: error.message });
+          return;
         }
       }
       throw error; // Re-lanzar otros errores para ser manejados por el catch externo

@@ -1,17 +1,19 @@
 // src/controllers/booking/getUserBookings.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { bookingService } from '../../services';
 
 /**
  * Controlador para obtener las reservas del usuario autenticado
  * @param req Request - Debe incluir userId (añadido por middleware de autenticación)
  * @param res Response
+ * @param next NextFunction
  */
-export const getUserBookings = async (req: Request, res: Response) => {
+const getUserBookings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Verificar que el usuario está autenticado
     if (!req.userId) {
-      return res.status(401).json({ message: 'Usuario no autenticado' });
+      res.status(401).json({ message: 'Usuario no autenticado' });
+      return;
     }
     
     // Utilizar el servicio para obtener las reservas del usuario

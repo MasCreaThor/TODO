@@ -1,23 +1,29 @@
 // src/controllers/hotel/getDestacadosHotels.controller.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { hotelService } from '../../services';
 
 /**
  * Controlador para obtener los hoteles destacados
- * @param req Request
+ * @param req Request - Puede incluir query: limit
  * @param res Response
+ * @param next NextFunction
  */
-export const getDestacadosHotels = async (req: Request, res: Response) => {
+const getDestacadosHotels = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Usar el servicio para obtener los hoteles destacados
-    // Se puede configurar un límite específico, por defecto es 6
-    const hotels = await hotelService.findDestacadosHotels(6);
+    // Si se proporciona un límite, convertirlo a número
+    const limit = req.query.limit ? Number(req.query.limit) : 6;
     
-    // Enviar respuesta
-    res.json(hotels);
+    // Usar el servicio para obtener los hoteles destacados
+    const hotels = await hotelService.findDestacadosHotels(limit);
+    
+    // Asegurar que siempre devolvemos un array, incluso si es vacío
+    res.json(hotels || []);
   } catch (error) {
     console.error('Error al obtener hoteles destacados:', error);
-    res.status(500).json({ message: 'Error al obtener hoteles destacados', error });
+    res.status(500).json({ 
+      message: 'Error al obtener hoteles destacados', 
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 

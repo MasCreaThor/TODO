@@ -1,19 +1,13 @@
+// src/routes/room.routes.ts
 import express from 'express';
 import { Router } from 'express';
+import { getRoomById, getRoomsByHotelId, checkRoomAvailability } from '../controllers/room';
 
 const router: Router = express.Router();
 
-// Implementaremos los controladores en la siguiente incidencia
-router.get('/', (req, res) => {
-  res.json({ message: 'Obtener todas las habitaciones' });
-});
-
-router.get('/:id', (req, res) => {
-  res.json({ message: `Obtener habitación con ID: ${req.params.id}` });
-});
-
-router.get('/hotel/:hotelId', (req, res) => {
-  res.json({ message: `Obtener habitaciones del hotel con ID: ${req.params.hotelId}` });
-});
+// Rutas implementadas con controladores reales
+router.get('/hotel/:hotelId', getRoomsByHotelId);
+router.get('/:id/availability', checkRoomAvailability);
+router.get('/:id', getRoomById);
 
 export default router;
