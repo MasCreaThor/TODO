@@ -2,7 +2,7 @@ import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../config/database';
 import Room from './Room';
 
-enum BookingStatus {
+export enum BookingStatus {
   PENDIENTE = 'PENDIENTE',
   CONFIRMADA = 'CONFIRMADA',
   CANCELADA = 'CANCELADA',
@@ -23,7 +23,7 @@ interface BookingAttributes {
   updatedAt?: Date;
 }
 
-export interface BookingInput extends Optional<BookingAttributes, 'id' | 'estado' | 'precioTotal'> {}
+export interface BookingInput extends Optional<BookingAttributes, 'id' | 'estado' | 'precioTotal' | 'comentarios'> {}
 export interface BookingOutput extends Required<BookingAttributes> {}
 
 class Booking extends Model<BookingAttributes, BookingInput> implements BookingAttributes {
@@ -98,4 +98,3 @@ Booking.init(
 );
 
 export default Booking;
-export { BookingStatus };

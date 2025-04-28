@@ -1,139 +1,235 @@
-# Arquitectura con Separación Completa de Responsabilidades
+# Pruebas con Postman - Endpoints Protegidos de Reservas
 
-Hemos refactorizado la aplicación para implementar una arquitectura de capas con clara separación de responsabilidades siguiendo los principios SOLID y Clean Architecture:
+Esta guía describe cómo probar los nuevos endpoints protegidos del microservicio de Reservas utilizando Postman.
 
-## Capas y Responsabilidades
+## Requisitos Previos
 
-### 1. Controladores
+1. Tener Postman instalado
+2. Tener los microservicios Auth y Reservas ejecutándose
+3. Tener un usuario registrado y su token JWT
 
-**Responsabilidad**: Manejar peticiones HTTP y preparar respuestas.
+## Obtener un Token JWT
 
-```typescript
-// Controller - Única responsabilidad: HTTP
-export const getAllHotels = async (req: Request, res: Response) => {
-  try {
-    const filterOptions = {
-      ciudad: req.query.ciudad as string,
-      // Convertir parámetros...
-    };
-    
-    const hotels = await hotelService.findAllHotels(filterOptions);
-    res.json(hotels);
-  } catch (error) {
-    res.status(500).json({ message: 'Error', error });
-  }
-};
-```
+Antes de probar los endpoints protegidos, necesitas obtener un token JWT:
 
-### 2. Servicios
+1. **Iniciar sesión** usando la API GraphQL del API Gateway:
 
-**Responsabilidad**: Implementar lógica de negocio, orquestar operaciones.
-
-```typescript
-// Service - Lógica de negocio pura
-class HotelService {
-  async findAllHotels(filterOptions) {
-    const hotels = await hotelRepository.findAll(filterOptions);
-    return this.enrichHotelsWithRatings(hotels);
-  }
-  
-  private calculateAverageRating(ratings) {
-    // Lógica de cálculo
+```graphql
+mutation Login($input: LoginInput!) {
+  login(input: $input) {
+    token
+    refreshToken
+    user {
+      id
+      email
+      role {
+        name
+      }
+    }
   }
 }
 ```
 
-### 3. Repositorios
+Variables:
 
-**Responsabilidad**: Abstraer el acceso a datos y las consultas a la base de datos.
-
-```typescript
-// Repository - Acceso a datos
-class HotelRepository {
-  async findAll(criteria) {
-    return await Hotel.findAll({
-      where: this.buildWhereConditions(criteria),
-      include: this.getStandardIncludes(criteria)
-    });
-  }
-  
-  private getStandardIncludes() {
-    // Definición de relaciones
+```json
+{
+  "input": {
+    "email": "tu_email@ejemplo.com",
+    "password": "tu_contraseña"
   }
 }
 ```
 
-### 4. Modelos
+2.**Copiar el token JWT** de la respuesta para usarlo en las solicitudes al microservicio de Reservas.
 
-**Responsabilidad**: Definir la estructura de datos y operaciones a nivel de tabla.
+## Configuración de la Colección de Postman
 
-## Principios Aplicados
+Para facilitar las pruebas, configura variables de entorno en Postman:
 
-### Principio de Responsabilidad Única (SRP)
+1. Crea un nuevo entorno y añade estas variables:
+   - `base_url`: `http://localhost:3000` (URL del microservicio Reservas)
+   - `token`: [Pega aquí el token JWT obtenido]
 
-Cada clase tiene una única razón para cambiar:
+2. Establece este entorno como activo.
 
-- **Controladores**: Cambian si cambia el formato de la API REST
-- **Servicios**: Cambian si cambian las reglas de negocio
-- **Repositorios**: Cambian si cambia la forma de acceder a los datos
-- **Modelos**: Cambian si cambia la estructura de datos
+## Prueba 1: Crear una Reserva
 
-### Principio de Inversión de Dependencias (DIP)
+**Método**: POST  
+**URL**: `{{base_url}}/api/bookings`  
+**Headers**:
 
-Los módulos de alto nivel no dependen de los detalles de implementación:
+- `Content-Type`: `application/json`
+- `Authorization`: `Bearer {{token}}`
 
-- Los servicios dependen de interfaces de repositorio, no de la implementación concreta
-- Los controladores dependen de interfaces de servicio
+**Body**:
 
-### Principio de Segregación de Interfaces (ISP)
-
-Cada clase expone solo los métodos necesarios para sus clientes:
-
-- Los repositorios exponen operaciones de acceso a datos limpias
-- Los servicios exponen operaciones de negocio cohesivas
-
-## Ventajas de esta Arquitectura
-
-### 1. Testabilidad Mejorada
-
-- Se pueden probar las unidades de forma aislada con mocks
-- Cada capa tiene una responsabilidad clara
-- No hay dependencias de HTTP en la lógica de negocio
-
-```typescript
-// Test de servicio (fácil de mockear el repositorio)
-test('should calculate average rating', () => {
-  const mockRepository = { findById: jest.fn().mockResolvedValue(mockHotel) };
-  const service = new HotelService(mockRepository);
-  const result = await service.findHotelById(1);
-  expect(result.calificacionPromedio).toBe(4.5);
-});
+```json
+{
+  "habitacionId": 1,
+  "fechaEntrada": "2025-05-01",
+  "fechaSalida": "2025-05-05",
+  "numeroHuespedes": 2,
+  "comentarios": "Por favor, habitación con vista al mar si es posible."
+}
 ```
 
-### 2. Mantenibilidad Superior
+**Respuesta Exitosa** (Código 201):
 
-- Código organizado por responsabilidad
-- Cambios aislados a una sola capa
-- Interfaces claras entre las capas
+```json
+{
+  "id": 1,
+  "userId": "usuario_id_aquí",
+  "habitacionId": 1,
+  "fechaEntrada": "2025-05-01T00:00:00.000Z",
+  "fechaSalida": "2025-05-05T00:00:00.000Z",
+  "estado": "PENDIENTE",
+  "precioTotal": 800,
+  "numeroHuespedes": 2,
+  "comentarios": "Por favor, habitación con vista al mar si es posible.",
+  "createdAt": "2023-04-25T12:34:56.789Z",
+  "updatedAt": "2023-04-25T12:34:56.789Z"
+}
+```
 
-### 3. Escalabilidad Arquitectónica
-- Fácil agregar nuevos repositorios o servicios
-- Posibilidad de cambiar la base de datos sin afectar los servicios
-- Posibilidad de cambiar de REST a GraphQL sin tocar los servicios
+## Prueba 2: Obtener Reservas del Usuario
 
-### 4. Reutilización de Código
+**Método**: GET  
+**URL**: `{{base_url}}/api/bookings/user`  
+**Headers**:
 
-- Lógica de negocio común centralizada en servicios
-- Operaciones de acceso a datos comunes en repositorios
-- No hay duplicación entre controladores
+- `Authorization`: `Bearer {{token}}`
 
-## Flujo de Datos
+**Respuesta Exitosa** (Código 200):
 
-1. La solicitud HTTP llega a un controlador específico
-2. El controlador extrae parámetros y llama al servicio apropiado
-3. El servicio implementa lógica de negocio y llama a repositorios
-4. El repositorio maneja la construcción de consultas y acceso a datos
-5. El resultado fluye de vuelta a través de las capas
+```json
+[
+  {
+    "id": 1,
+    "userId": "usuario_id_aquí",
+    "habitacionId": 1,
+    "fechaEntrada": "2025-05-01T00:00:00.000Z",
+    "fechaSalida": "2025-05-05T00:00:00.000Z",
+    "estado": "PENDIENTE",
+    "precioTotal": 800,
+    "numeroHuespedes": 2,
+    "comentarios": "Por favor, habitación con vista al mar si es posible.",
+    "createdAt": "2023-04-25T12:34:56.789Z",
+    "updatedAt": "2023-04-25T12:34:56.789Z",
+    "habitacion": {
+      "id": 1,
+      "hotelId": 1,
+      "tipo": "Suite",
+      "capacidad": 2,
+      "precio": 200,
+      "disponibilidad": true,
+      "imagenes": ["url1", "url2"],
+      "descripcion": "Suite de lujo con vista al mar",
+      "hotel": {
+        "id": 1,
+        "nombre": "Hotel Ejemplo",
+        "direccion": "Dirección Ejemplo"
+      }
+    }
+  }
+]
+```
+
+## Prueba 3: Obtener una Reserva Específica
+
+**Método**: GET  
+**URL**: `{{base_url}}/api/bookings/1` (Reemplaza 1 con el ID de la reserva)  
+**Headers**:
+
+- `Authorization`: `Bearer {{token}}`
+
+**Respuesta Exitosa** (Código 200):
+
+```json
+{
+  "id": 1,
+  "userId": "usuario_id_aquí",
+  "habitacionId": 1,
+  "fechaEntrada": "2025-05-01T00:00:00.000Z",
+  "fechaSalida": "2025-05-05T00:00:00.000Z",
+  "estado": "PENDIENTE",
+  "precioTotal": 800,
+  "numeroHuespedes": 2,
+  "comentarios": "Por favor, habitación con vista al mar si es posible.",
+  "createdAt": "2023-04-25T12:34:56.789Z",
+  "updatedAt": "2023-04-25T12:34:56.789Z",
+  "habitacion": {
+    "id": 1,
+    "hotelId": 1,
+    "tipo": "Suite",
+    "capacidad": 2,
+    "precio": 200,
+    "disponibilidad": true,
+    "imagenes": ["url1", "url2"],
+    "descripcion": "Suite de lujo con vista al mar",
+    "hotel": {
+      "id": 1,
+      "nombre": "Hotel Ejemplo",
+      "direccion": "Dirección Ejemplo"
+    }
+  }
+}
+```
+
+## Prueba 4: Cancelar una Reserva
+
+**Método**: PUT  
+**URL**: `{{base_url}}/api/bookings/1/cancel` (Reemplaza 1 con el ID de la reserva)  
+**Headers**:
+
+- `Authorization`: `Bearer {{token}}`
+
+**Respuesta Exitosa** (Código 200):
+
+```json
+{
+  "id": 1,
+  "userId": "usuario_id_aquí",
+  "habitacionId": 1,
+  "fechaEntrada": "2025-05-01T00:00:00.000Z",
+  "fechaSalida": "2025-05-05T00:00:00.000Z",
+  "estado": "CANCELADA",
+  "precioTotal": 800,
+  "numeroHuespedes": 2,
+  "comentarios": "Por favor, habitación con vista al mar si es posible.",
+  "createdAt": "2023-04-25T12:34:56.789Z",
+  "updatedAt": "2023-04-25T13:45:00.000Z"
+}
+```
+
+## Solución de Problemas Comunes
+
+### Error 401: No se proporcionó token de autenticación
+
+- **Causa**: Falta el header `Authorization` o el token es incorrecto.
+- **Solución**: Asegúrate de incluir el header `Authorization: Bearer <token>` y que el token sea válido.
+
+### Error 400: La habitación no está disponible
+
+- **Causa**: La habitación ya está reservada para las fechas solicitadas.
+- **Solución**: Prueba con otras fechas o una habitación diferente.
+
+### Error 403: No tiene permiso para ver esta reserva
+
+- **Causa**: Estás intentando acceder a una reserva que no te pertenece.
+- **Solución**: Asegúrate de solicitar solo tus propias reservas a menos que tengas rol de ADMIN o HOTEL_MANAGER.
+
+### Error 500: Error del servidor
+
+- **Causa**: Problema interno en el servidor.
+- **Solución**: Verifica los logs del servidor para más detalles.
+
+## Notas Adicionales
+
+- Para crear una reserva, asegúrate de que la habitación existe y está disponible para las fechas solicitadas.
+- Las fechas deben estar en formato ISO (YYYY-MM-DD).
+- No puedes cancelar una reserva ya completada.
+- El precio total se calcula automáticamente basado en el precio por noche y la duración de la estancia.
 
 ## Diagrama de Flujo
 

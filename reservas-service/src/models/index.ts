@@ -1,6 +1,6 @@
 import Hotel from './Hotel';
 import Room from './Room';
-import Booking from './Booking';
+import Booking, { BookingStatus } from './Booking';
 import Country from './Country';
 import City from './City';
 import Address from './Address';
@@ -92,6 +92,7 @@ export {
   Hotel,
   Room,
   Booking,
+  BookingStatus,
   Country,
   City,
   Address,

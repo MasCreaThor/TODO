@@ -1,0 +1,22 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@hotelId = 1
+@roomId = 1
+
+### Obtener habitaciones por hotel ID
+GET {{baseUrl}}/rooms/hotel/{{hotelId}} HTTP/1.1
+
+### Obtener habitaciones por hotel ID con filtro de capacidad
+GET {{baseUrl}}/rooms/hotel/{{hotelId}}?capacidad=2 HTTP/1.1
+
+### Obtener habitaciones por hotel ID con filtros de fecha
+GET {{baseUrl}}/rooms/hotel/{{hotelId}}?fechaEntrada=2025-05-01&fechaSalida=2025-05-05 HTTP/1.1
+
+### Obtener habitaciones por hotel ID con todos los filtros
+GET {{baseUrl}}/rooms/hotel/{{hotelId}}?fechaEntrada=2025-05-01&fechaSalida=2025-05-05&capacidad=2 HTTP/1.1
+
+### Obtener una habitación específica por ID
+GET {{baseUrl}}/rooms/{{roomId}} HTTP/1.1
+
+### Verificar disponibilidad de una habitación
+GET {{baseUrl}}/rooms/{{roomId}}/availability?fechaEntrada=2025-05-01&fechaSalida=2025-05-05 HTTP/1.1

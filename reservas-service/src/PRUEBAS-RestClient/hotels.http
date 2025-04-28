@@ -1,0 +1,21 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@hotelId = 1
+
+### Obtener todos los hoteles
+GET {{baseUrl}}/hotels HTTP/1.1
+
+### Obtener todos los hoteles con filtro de ciudad
+GET {{baseUrl}}/hotels?ciudad=Madrid HTTP/1.1
+
+### Obtener todos los hoteles con múltiples filtros
+GET {{baseUrl}}/hotels?ciudad=Barcelona&categoria=5&destacado=true HTTP/1.1
+
+### Obtener todos los hoteles con filtro de precio
+GET {{baseUrl}}/hotels?precioMin=100&precioMax=300 HTTP/1.1
+
+### Obtener un hotel específico por ID
+GET {{baseUrl}}/hotels/{{hotelId}} HTTP/1.1
+
+### Obtener hoteles destacados
+GET {{baseUrl}}/hotels/destacados HTTP/1.1
