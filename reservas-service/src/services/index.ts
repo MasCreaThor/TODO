@@ -2,6 +2,7 @@
 import { hotelService, HotelFilterOptions } from './hotel';
 import { roomService, RoomFilterOptions } from './room';
 import { bookingService, CreateBookingInput } from './booking';
+import { categoryService } from './category';
 
 export {
   hotelService,
@@ -9,5 +10,6 @@ export {
   roomService,
   RoomFilterOptions,
   bookingService,
-  CreateBookingInput
+  CreateBookingInput,
+  categoryService
 };

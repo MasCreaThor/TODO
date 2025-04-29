@@ -1,0 +1,20 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+
+### Obtener todas las categorías
+GET {{baseUrl}}/categories HTTP/1.1
+
+### Obtener una categoría específica por ID
+GET {{baseUrl}}/categories/1 HTTP/1.1
+
+### Obtener o crear una categoría por número de estrellas
+GET {{baseUrl}}/categories/estrellas/5 HTTP/1.1
+
+### Obtener hoteles filtrados por categoría (ID)
+GET {{baseUrl}}/hotels?categoria=1 HTTP/1.1
+
+### Obtener hoteles filtrados por estrellas
+GET {{baseUrl}}/hotels?estrellas=5 HTTP/1.1
+
+### Obtener hoteles con múltiples filtros (ciudad y estrellas)
+GET {{baseUrl}}/hotels?ciudad=Buenos&estrellas=5 HTTP/1.1

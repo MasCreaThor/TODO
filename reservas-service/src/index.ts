@@ -7,6 +7,7 @@ import './models';
 import hotelRoutes from './routes/hotel.routes';
 import roomRoutes from './routes/room.routes';
 import bookingRoutes from './routes/booking.routes';
+import categoryRoutes from './routes/category.routes';
 import corsMiddleware from './middlewares/cors.middleware';
 
 // Cargar variables de entorno
@@ -25,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Ruta de prueba y health check
 app.get('/', (req, res) => {
